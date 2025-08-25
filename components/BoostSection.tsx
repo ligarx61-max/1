@@ -1,7 +1,7 @@
 "use client"
 
 import type { User } from "@/types"
-import { gameLogic } from "@/lib/game-logic"
+import { gameLogic, GAME_CONFIG } from "@/lib/game-logic"
 import { ArrowUp, Zap, Clock, TrendingUp } from "lucide-react"
 
 interface BoostSectionProps {
@@ -16,6 +16,11 @@ export const BoostSection = ({ user, onUpgrade, onOpenRank }: BoostSectionProps)
   const miningRateCost = gameLogic.getBoostCost("miningRate", user.boosts.miningRateLevel)
   const { rank, icon } = gameLogic.calculateRank(user.totalEarned)
 
+  // Calculate current values
+  const currentMiningRate = user.miningRate || GAME_CONFIG.BASE_MINING_RATE
+  const currentClaimTime = user.minClaimTime || GAME_CONFIG.MIN_CLAIM_TIME
+  const currentMiningSpeed = Math.pow(GAME_CONFIG.MINING_SPEED_MULTIPLIER, (user.boosts.miningSpeedLevel || 1) - 1)
+
   const boosts = [
     {
       id: "miningSpeed",
@@ -23,7 +28,7 @@ export const BoostSection = ({ user, onUpgrade, onOpenRank }: BoostSectionProps)
       description: "Increase mining efficiency",
       icon: <Zap className="w-5 h-5" />,
       level: user.boosts.miningSpeedLevel,
-      current: `${user.boosts.miningSpeedLevel}x`,
+      current: `${currentMiningSpeed.toFixed(1)}x`,
       next: gameLogic.getNextBoostValue("miningSpeed", user.boosts.miningSpeedLevel, user),
       cost: miningSpeedCost,
       onUpgrade: () => onUpgrade("miningSpeed"),
@@ -34,7 +39,7 @@ export const BoostSection = ({ user, onUpgrade, onOpenRank }: BoostSectionProps)
       description: "Reduce minimum claim time",
       icon: <Clock className="w-5 h-5" />,
       level: user.boosts.claimTimeLevel,
-      current: gameLogic.formatTime(user.minClaimTime || 1800),
+      current: gameLogic.formatTime(currentClaimTime),
       next: gameLogic.getNextBoostValue("claimTime", user.boosts.claimTimeLevel, user),
       cost: claimTimeCost,
       onUpgrade: () => onUpgrade("claimTime"),
@@ -45,7 +50,7 @@ export const BoostSection = ({ user, onUpgrade, onOpenRank }: BoostSectionProps)
       description: "Increase DRX per second",
       icon: <TrendingUp className="w-5 h-5" />,
       level: user.boosts.miningRateLevel,
-      current: `${gameLogic.formatNumberPrecise(user.miningRate || 0.001)}/s`,
+      current: `${gameLogic.formatNumberPrecise(currentMiningRate)}/s`,
       next: gameLogic.getNextBoostValue("miningRate", user.boosts.miningRateLevel, user),
       cost: miningRateCost,
       onUpgrade: () => onUpgrade("miningRate"),

@@ -75,7 +75,7 @@ export const MissionSection = ({
           alt={mission.title}
           width={32}
           height={32}
-          className="w-5 h-5 rounded object-cover"
+          className="w-5 h-5 rounded-full object-cover border border-white/20"
         />
       )
     }
@@ -326,7 +326,17 @@ export const MissionSection = ({
             <div className="flex items-center justify-between p-6 border-b border-gray-700/30 sticky top-0 bg-gray-900/95 backdrop-blur-md">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-xl flex items-center justify-center text-2xl">
-                  {getMissionIcon(selectedMissionData)}
+                  {selectedMissionData.img ? (
+                    <Image
+                      src={selectedMissionData.img}
+                      alt={selectedMissionData.title}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover border border-white/20"
+                    />
+                  ) : (
+                    getMissionIcon(selectedMissionData)
+                  )}
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white font-display">{selectedMissionData.title}</h2>

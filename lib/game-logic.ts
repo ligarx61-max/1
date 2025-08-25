@@ -106,6 +106,9 @@ export const gameLogic = {
     }
   },
 
+  // Import GAME_CONFIG at the top
+  import { GAME_CONFIG } from "./game-logic"
+
   getBoostCost(boostType: "miningSpeed" | "claimTime" | "miningRate", currentLevel: number): number {
     const baseCosts = {
       miningSpeed: 100,
@@ -121,15 +124,15 @@ export const gameLogic = {
   getNextBoostValue(boostType: "miningSpeed" | "claimTime" | "miningRate", currentLevel: number, user: User): string {
     switch (boostType) {
       case "miningSpeed":
-        const nextSpeedMultiplier = currentLevel + 1
-        return `${nextSpeedMultiplier}x`
+        const nextSpeedMultiplier = Math.pow(GAME_CONFIG.MINING_SPEED_MULTIPLIER, currentLevel)
+        return `${nextSpeedMultiplier.toFixed(1)}x`
       case "claimTime":
         const currentTime = user.minClaimTime || GAME_CONFIG.MIN_CLAIM_TIME
-        const nextTime = Math.max(300, currentTime - 300) // Reduce by 5 minutes, minimum 5 minutes
+        const nextTime = Math.max(300, GAME_CONFIG.MIN_CLAIM_TIME - (GAME_CONFIG.CLAIM_TIME_REDUCTION * currentLevel))
         return this.formatTime(nextTime)
       case "miningRate":
-        const currentRate = user.miningRate || GAME_CONFIG.BASE_MINING_RATE
-        const nextRate = currentRate * 1.5
+        const nextRateMultiplier = Math.pow(GAME_CONFIG.MINING_RATE_MULTIPLIER, currentLevel)
+        const nextRate = GAME_CONFIG.BASE_MINING_RATE * nextRateMultiplier
         return `${this.formatNumberPrecise(nextRate)}/s`
       default:
         return "Unknown"
@@ -190,7 +193,10 @@ export const gameLogic = {
     const duration = this.getMiningDuration(user)
     if (duration === 0) return 0
     
-    const { earned } = this.calculateMiningRewards(user, duration)
+    // Apply mining time limits
+    const limitedDuration = Math.min(duration, GAME_CONFIG.MAX_MINING_TIME)
+    
+    const { earned } = this.calculateMiningRewards(user, limitedDuration)
     return earned
   },
 

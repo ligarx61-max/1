@@ -124,7 +124,21 @@ export const useGameState = () => {
 
       if (authResult.valid && authResult.userData) {
         // Existing user with valid auth
-        setUser({ ...defaultUserData, ...authResult.userData, id: userId, isReturningUser: true })
+        const existingUser = { ...defaultUserData, ...authResult.userData, id: userId, isReturningUser: true }
+        
+        // Calculate offline mining rewards if user was mining
+        if (existingUser.isMining && existingUser.miningStartTime) {
+          const now = Date.now()
+          const offlineDuration = Math.floor((now - existingUser.miningStartTime) / 1000)
+          const limitedDuration = Math.min(offlineDuration, GAME_CONFIG.MAX_MINING_TIME)
+          
+          if (limitedDuration > 0) {
+            const { earned } = gameLogic.calculateMiningRewards(existingUser, limitedDuration)
+            existingUser.pendingRewards = earned
+          }
+        }
+        
+        setUser(existingUser)
       } else {
         // New user - create account
         const newUser = {
@@ -230,20 +244,18 @@ export const useGameState = () => {
         boosts: { ...user.boosts, [`${boostType}Level`]: currentLevel + 1 },
       }
 
-      switch (boostType) {
-        case "miningSpeed":
-          // Mining speed affects efficiency multiplier
-          updates.miningRate = GAME_CONFIG.BASE_MINING_RATE * currentLevel
-          break
-        case "claimTime":
-          // Reduce claim time by 5 minutes per level, minimum 5 minutes
-          updates.minClaimTime = Math.max(300, GAME_CONFIG.MIN_CLAIM_TIME - (300 * currentLevel))
-          break
-        case "miningRate":
-          // Mining rate boost increases base rate by 50% per level
-          updates.miningRate = GAME_CONFIG.BASE_MINING_RATE * Math.pow(1.5, currentLevel)
-          break
-      }
+      // Calculate new mining rate and claim time based on all boosts
+      const newMiningSpeedLevel = boostType === "miningSpeed" ? currentLevel + 1 : user.boosts.miningSpeedLevel
+      const newClaimTimeLevel = boostType === "claimTime" ? currentLevel + 1 : user.boosts.claimTimeLevel
+      const newMiningRateLevel = boostType === "miningRate" ? currentLevel + 1 : user.boosts.miningRateLevel
+      
+      // Update mining rate with combined boosts
+      const miningRateMultiplier = Math.pow(GAME_CONFIG.MINING_RATE_MULTIPLIER, (newMiningRateLevel || 1) - 1)
+      const miningSpeedMultiplier = Math.pow(GAME_CONFIG.MINING_SPEED_MULTIPLIER, (newMiningSpeedLevel || 1) - 1)
+      updates.miningRate = GAME_CONFIG.BASE_MINING_RATE * miningRateMultiplier * miningSpeedMultiplier
+      
+      // Update claim time
+      updates.minClaimTime = Math.max(300, GAME_CONFIG.MIN_CLAIM_TIME - (GAME_CONFIG.CLAIM_TIME_REDUCTION * ((newClaimTimeLevel || 1) - 1)))
 
       const updatedUser = { ...user, ...updates }
       setUser(updatedUser)
